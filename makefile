@@ -4,7 +4,7 @@ PHP_VERSION = 8.3
 
 # DOCKER
 DOCKER_IMAGE_TAG = ${LIBRARY_NAME}:${PHP_VERSION}-cli
-DOCKERFILE_PATH = ./docker/Dockerfile
+DOCKERFILE_PATH = ./.docker/Dockerfile
 DOCKER_WORKDIR = /srv/library
 
 # DOCKER COMMAND
