@@ -7,3 +7,6 @@
 # composer
 /vendor/
 /composer.lock
+
+# library
+/var/
