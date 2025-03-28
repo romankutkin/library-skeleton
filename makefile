@@ -1,5 +1,5 @@
 # LIBRARY INFORMATION
-LIBRARY_NAME = request-transformer
+LIBRARY_NAME = library-name
 PHP_VERSION = 8.3
 
 # DOCKER
