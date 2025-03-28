@@ -1,0 +1,20 @@
+{
+    "name": "romankutkin/library",
+    "description": "Skeleton for PHP libraries.",
+    "version": "1.0.0",
+    "type": "library",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Roman Kut'kin"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Kutkin\\Library\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.3"
+    }
+}
