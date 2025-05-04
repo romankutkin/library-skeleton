@@ -14,5 +14,8 @@ DOCKER_CONTAINER_RUN = docker container run --interactive --tty --volume ./:${DO
 build:
 	@${DOCKER_IMAGE_BUILD}
 
+analyse:
+	@${DOCKER_CONTAINER_RUN} vendor/bin/phpstan analyse -l 10 src tests
+
 bash:
 	@${DOCKER_CONTAINER_RUN} bash
