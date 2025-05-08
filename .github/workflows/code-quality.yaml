@@ -34,19 +34,21 @@ jobs:
                 name: Install Dependencies
                 env:
                     DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
-                run: docker run --rm \
-                    -v ${{ github.workspace }}:/srv/library \
-                    -w /srv/library \
-                    ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
-                    composer install --no-interaction
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
+                        composer install --no-interaction
 
             -
                 name: Run Test
-                run: docker run --rm \
-                    -v ${{ github.workspace }}:/srv/library \
-                    -w /srv/library \
-                    ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
-                    vendor/bin/phpunit
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
+                        vendor/bin/phpunit
 
 #    prepare-docker-image:
 #        name: Prepare Docker Image
