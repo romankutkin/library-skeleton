@@ -11,14 +11,11 @@ on:
             - feature/test-github-actions
 
 jobs:
-    pull-image:
-        name: Pull Docker Image
+    run-analyze:
+        name: Run Static Analyze
         runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                php_version: [ "8.3", "8.4" ]
         steps:
-            -   name: Login in private docker registry
+            -   name: Login in docker registry
                 run: |
                     echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
                         -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
@@ -27,11 +24,6 @@ jobs:
                 run: |
                     docker pull ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli
 
-    run-analyze:
-        name: Run Static Analyze
-        needs: pull-image
-        runs-on: ubuntu-latest
-        steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
 
@@ -53,12 +45,20 @@ jobs:
 
     run-test:
         name: Run Test
-        needs: pull-image
         runs-on: ubuntu-latest
         strategy:
             matrix:
                 php_version: [ "8.3", "8.4" ]
         steps:
+            -   name: Login in docker registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
+
+            -   name: Pull docker image
+                run: |
+                    docker pull ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli
+
             -   name: Checkout code
                 uses: actions/checkout@v4
 
