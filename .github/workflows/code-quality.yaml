@@ -31,7 +31,14 @@ jobs:
                 run: echo "$DOCKER_REGISTRY_PASSWORD" | docker login $DOCKER_REGISTRY_HOST -u $DOCKER_REGISTRY_USERNAME --password-stdin
 
             -
-                name: Install Dependencies
+                name: Pull Docker Image
+                env:
+                    DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
+                run: |
+                    docker pull $DOCKER_REGISTRY_HOST/library-name/php:${{ matrix.php_version }}-cli
+
+            -
+                name: Install Composer Dependencies
                 env:
                     DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
                 run: |
