@@ -1,14 +1,8 @@
 name: Code Quality
 
 on:
-    push:
-        branches:
-            # TODO: change branch
-            - feature/test-github-actions
     pull_request:
-        branches:
-            # TODO: change branch
-            - feature/test-github-actions
+        types: [ opened, synchronize, reopened ]
 
 jobs:
     run-analyze:
