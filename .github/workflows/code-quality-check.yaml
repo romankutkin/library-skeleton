@@ -19,5 +19,3 @@ jobs:
             -
                 name: Validate composer
                 run: composer validate
-
-
