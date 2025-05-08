@@ -27,7 +27,7 @@ jobs:
                     DOCKER_REGISTRY_HOST: ${{ secrets.LARGE_SECRET_PASSPHRASE }}
                     DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
                     DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
-                run: echo "$DOCKER_REGISTRY_PASSWORD" | docker login --username $DOCKER_REGISTRY_USERNAME --password-stdin $DOCKER_REGISTRY_HOST
+                run: echo "$DOCKER_REGISTRY_PASSWORD" | docker login $DOCKER_REGISTRY_HOST --username $DOCKER_REGISTRY_USERNAME --password-stdin
 
             -
                 name: Install Dependencies
