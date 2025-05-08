@@ -1,0 +1,21 @@
+name: Code Quality Checks
+on:
+    push:
+        branches:
+            - develop
+    pull_request:
+        branches:
+            - develop
+
+jobs:
+    code-check:
+        name: Check code quality
+        runs-on: ubuntu-latest
+        steps:
+            -
+                name: Checkout code
+                uses: actions/checkout@v4
+
+            -
+                name: Validate composer
+                run: composer validate
