@@ -23,8 +23,9 @@ jobs:
 
             -
                 name: Login to Private Docker Registry
-                run: echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
-                    -u "${{ secrets.DOCKER_REGISTRY_USERNAME }}" --password-stdin
+                run: docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                    -u "${{ secrets.DOCKER_REGISTRY_USERNAME }}" \
+                    -p "${{ secrets.DOCKER_REGISTRY_PASSWORD }}"
 
             -
                 name: Install Dependencies
