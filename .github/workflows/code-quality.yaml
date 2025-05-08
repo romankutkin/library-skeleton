@@ -13,7 +13,7 @@ on:
 jobs:
     run-analyze:
         name: Run Static Analyze
-        runs-on: self-hosted
+        runs-on: ubuntu-latest
         steps:
             -   name: Login in docker registry
                 run: |
@@ -45,7 +45,7 @@ jobs:
 
     run-test:
         name: Run Test
-        runs-on: self-hosted
+        runs-on: ubuntu-latest
         strategy:
             matrix:
                 php_version: [ "8.3", "8.4" ]
