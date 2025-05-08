@@ -1,4 +1,5 @@
 name: Code Quality Checks
+
 on:
     push:
         branches:
@@ -7,15 +8,48 @@ on:
         branches:
             - feature/test-github-actions
 
+env:
+    LIBRARY_NAME: library-name
+    DOCKERFILE_PATH: ./.docker/Dockerfile
+    DOCKER_WORKDIR: /srv/library
+
 jobs:
-    code-check:
-        name: Check code quality
+    prepare-docker-image:
+        name: Prepare Docker Image
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                version:
+                    - 8.3
+                    - 8.4
+
         steps:
             -
-                name: Checkout code
+                name: Checkout Code
                 uses: actions/checkout@v4
 
             -
-                name: Validate composer
-                run: composer validate
+                name: Docker Build
+                run: docker image build --build-arg PHP_VERSION=${{ matrix.version }} --file ${{ DOCKERFILE_PATH }} --tag ${{ LIBRARY_NAME }}/php:${{ matrix.version }}-cli }} .
+
+    run-linter:
+        name: Run Linter
+        steps:
+            -
+                name: Run PHP-CS-Fixer
+                run: docker container run --interactive --tty --volume ./:${{ DOCKER_WORKDIR }} --workdir ${{ DOCKER_WORKDIR }} ${{ LIBRARY_NAME }}/php:${{ matrix.version }}-cli vendor/bin/phpstan analyse -l 10 src tests
+
+    run-static-analyze:
+        name: Run Static Analyze
+        steps:
+            -
+                name: Run PHPStan
+                run: docker container run --interactive --tty --volume ./:${{ DOCKER_WORKDIR }} --workdir ${{ DOCKER_WORKDIR }} ${{ LIBRARY_NAME }}/php:${{ matrix.version }}-cli
+
+    run-test:
+        name: Run Test
+        steps:
+            -
+                name: Run PHPUnit
+                run: docker container run --interactive --tty --volume ./:${{ DOCKER_WORKDIR }} --workdir ${{ DOCKER_WORKDIR }} ${{ LIBRARY_NAME }}/php:${{ matrix.version }}-cli
+
