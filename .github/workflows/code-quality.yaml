@@ -12,7 +12,7 @@ on:
 
 jobs:
     pull-image:
-        name: Pull docker image from private docker registry
+        name: Pull Docker Image
         runs-on: ubuntu-latest
         strategy:
             matrix:
@@ -28,7 +28,8 @@ jobs:
                     docker pull ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli
 
     run-analyze:
-        name: Run static analyze
+        name: Run Static Analyze
+        needs: pull-image
         runs-on: ubuntu-latest
         steps:
             -   name: Checkout code
@@ -51,7 +52,8 @@ jobs:
                         vendor/bin/phpstan analyze -l 10 src tests
 
     run-test:
-        name: Run test
+        name: Run Test
+        needs: pull-image
         runs-on: ubuntu-latest
         strategy:
             matrix:
