@@ -71,3 +71,4 @@ jobs:
                         -w /srv/library \
                         ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
                         vendor/bin/phpunit
+  
