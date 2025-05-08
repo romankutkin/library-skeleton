@@ -11,96 +11,67 @@ on:
             - feature/test-github-actions
 
 jobs:
-    run-test:
-        name: Run PHPUnit
+    pull-image:
+        name: Pull docker image from private docker registry
         runs-on: ubuntu-latest
         strategy:
             matrix:
                 php_version: [ "8.3", "8.4" ]
         steps:
-            -
-                name: Checkout Code
+            -   name: Login in private docker registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
+
+            -   name: Pull docker image
+                run: |
+                    docker pull ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli
+
+    run-analyze:
+        name: Run static analyze
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout code
                 uses: actions/checkout@v4
 
-            -
-                name: Login to Private Docker Registry
-                env:
-                    DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
-                    DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
-                    DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
-                run: echo "$DOCKER_REGISTRY_PASSWORD" | docker login $DOCKER_REGISTRY_HOST -u $DOCKER_REGISTRY_USERNAME --password-stdin
-
-            -
-                name: Pull Docker Image
-                env:
-                    DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
-                run: |
-                    docker pull $DOCKER_REGISTRY_HOST/library-name/php:${{ matrix.php_version }}-cli
-
-            -
-                name: Install Composer Dependencies
-                env:
-                    DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
+            -   name: Install composer dependencies
                 run: |
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
                         -w /srv/library \
-                        $DOCKER_REGISTRY_HOST/library-name/php:${{ matrix.php_version }}-cli \
+                        ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
                         composer install --no-interaction
 
-            -
-                name: Run Test
-                env:
-                    DOCKER_REGISTRY_HOST: ${{ secrets.DOCKER_REGISTRY_HOST }}
+            -   name: Run PHPStan
                 run: |
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
                         -w /srv/library \
-                        $DOCKER_REGISTRY_HOST/library-name/php:${{ matrix.php_version }}-cli \
+                        ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
+                        vendor/bin/phpstan analyze -l 10 src tests
+
+    run-test:
+        name: Run test
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                php_version: [ "8.3", "8.4" ]
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+
+            -   name: Install composer dependencies
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
+                        composer install --no-interaction
+
+            -   name: Run PHPUnit
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
                         vendor/bin/phpunit
-
-#    prepare-docker-image:
-#        name: Prepare Docker Image
-#        runs-on: ubuntu-latest
-#        strategy:
-#            matrix:
-#                version:
-#                    - 8.3
-#                    - 8.4
-#
-#        steps:
-#            -
-#                name: Checkout Code
-#                uses: actions/checkout@v4
-#
-#            -
-#                name: Docker Build
-#                run: docker image build --build-arg PHP_VERSION=${{ matrix.version }} --file $DOCKERFILE_PATH --tag $LIBRARY_NAME/php:${{ matrix.version }}-cli }} .
-#
-#    run-linter:
-#        name: Run Linter
-#        runs-on: ubuntu-latest
-#        needs: prepare-docker-image
-#        steps:
-#            -
-#                name: Run PHP-CS-Fixer
-#                run: docker container run --interactive --tty --volume ./:$DOCKER_WORKDIR --workdir $DOCKER_WORKDIR $LIBRARY_NAME/php:${{ matrix.version }}-cli vendor/bin/phpstan analyse -l 10 src tests
-#
-#    run-static-analyze:
-#        name: Run Static Analyze
-#        runs-on: ubuntu-latest
-#        needs: prepare-docker-image
-#        steps:
-#            -
-#                name: Run PHPStan
-#                run: docker container run --interactive --tty --volume ./:$DOCKER_WORKDIR --workdir $DOCKER_WORKDIR $LIBRARY_NAME/php:${{ matrix.version }}-cli
-#
-#    run-test:
-#        name: Run Test
-#        runs-on: ubuntu-latest
-#        needs: prepare-docker-image
-#        steps:
-#            -
-#                name: Run PHPUnit
-#                run: docker container run --interactive --tty --volume ./:$DOCKER_WORKDIR --workdir $DOCKER_WORKDIR $LIBRARY_NAME/php:${{ matrix.version }}-cli
-
