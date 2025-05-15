@@ -32,6 +32,7 @@ jobs:
     run-analyze:
         name: Run Static Analyze
         runs-on: ubuntu-latest
+        needs: [run-composer-validate]
         steps:
             -   name: Login in docker registry
                 run: |
@@ -64,6 +65,7 @@ jobs:
     run-test:
         name: Run Test
         runs-on: ubuntu-latest
+        needs: [ run-composer-validate ]
         strategy:
             matrix:
                 php_version: [ "8.3", "8.4" ]
