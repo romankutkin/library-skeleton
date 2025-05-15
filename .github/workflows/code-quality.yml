@@ -21,7 +21,7 @@ jobs:
             -   name: Checkout code
                 uses: actions/checkout@v4
 
-            -   name: Validate Composer
+            -   name: Validate composer.json
                 run: |
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
@@ -68,6 +68,7 @@ jobs:
                 run: |
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
+                        -v ${{ github.workspace }}/vendor:/srv/library/vendor \
                         -w /srv/library \
                         ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:8.4-cli \
                         vendor/bin/phpstan analyze -l 10 src tests
@@ -89,19 +90,20 @@ jobs:
             -   name: Checkout code
                 uses: actions/checkout@v4
 
-            -   name: Install composer dependencies
-                run: |
-                    docker run --rm \
-                        -v ${{ github.workspace }}:/srv/library \
-                        -v ${{ github.workspace }}/vendor:/srv/library/vendor \
-                        -w /srv/library \
-                        ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:8.4-cli \
-                        composer install --no-interaction
+            -   name: Cache composer dependencies
+                uses: actions/cache@v4
+                with:
+                    path: |
+                        vendor
+                    key: composer-${{ hashFiles('composer.lock') }}
+                    restore-keys: |
+                        composer-
 
             -   name: Run PHPStan
                 run: |
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
+                        -v ${{ github.workspace }}/vendor:/srv/library/vendor \
                         -w /srv/library \
                         ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:8.4-cli \
                         vendor/bin/phpstan analyze -l 10 src tests
@@ -126,19 +128,20 @@ jobs:
             -   name: Checkout code
                 uses: actions/checkout@v4
 
-            -   name: Install composer dependencies
-                run: |
-                    docker run --rm \
-                        -v ${{ github.workspace }}:/srv/library \
-                        -v ${{ github.workspace }}/vendor:/srv/library/vendor \
-                        -w /srv/library \
-                        ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
-                        composer install --no-interaction
+            -   name: Cache composer dependencies
+                uses: actions/cache@v4
+                with:
+                    path: |
+                        vendor
+                    key: composer-${{ hashFiles('composer.lock') }}
+                    restore-keys: |
+                        composer-
 
             -   name: Run PHPUnit
                 run: |
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
+                        -v ${{ github.workspace }}/vendor:/srv/library/vendor \
                         -w /srv/library \
                         ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php:${{ matrix.php_version }}-cli \
                         vendor/bin/phpunit
