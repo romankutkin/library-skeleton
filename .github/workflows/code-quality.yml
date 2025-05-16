@@ -17,7 +17,7 @@ jobs:
                         -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
             -   name: Pull PHP 8.4 CLI Image
                 run: |
-                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli
+                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli
             -   name: Checkout Code
                 uses: actions/checkout@v4
             -   name: Validate composer.json
@@ -25,7 +25,7 @@ jobs:
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
                         -w /srv/library \
-                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
                         composer validate
 
     run-analyze:
@@ -39,7 +39,7 @@ jobs:
                         -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
             -   name: Pull PHP 8.4 CLI Image
                 run: |
-                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli
+                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli
             -   name: Checkout Code
                 uses: actions/checkout@v4
             -   name: Cache Composer Dependencies
@@ -53,14 +53,14 @@ jobs:
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
                         -w /srv/library \
-                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
                         composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
             -   name: Run PHPStan
                 run: |
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
                         -w /srv/library \
-                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
                         vendor/bin/phpstan analyze -l 10 src tests --memory-limit=2G
 
     run-linter:
@@ -74,7 +74,7 @@ jobs:
                         -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
             -   name: Pull PHP 8.4 CLI Image
                 run: |
-                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli
+                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli
             -   name: Checkout Code
                 uses: actions/checkout@v4
             -   name: Cache Composer Dependencies
@@ -88,14 +88,14 @@ jobs:
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
                         -w /srv/library \
-                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
                         composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
             -   name: Run PHP-CS-Fixer
                 run: |
                     docker run --rm \
                         -v ${{ github.workspace }}:/srv/library \
                         -w /srv/library \
-                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
                         vendor/bin/php-cs-fixer fix --dry-run --diff
 
     run-unit-test:
@@ -156,9 +156,9 @@ jobs:
                 uses: actions/cache@v4
                 with:
                     path: vendor
-                    key: composer-php-8.4-${{ hashFiles('composer.lock') }} # Specific key for this PHP version
+                    key: composer-php-8.3-${{ hashFiles('composer.lock') }} # Specific key for this PHP version
                     restore-keys: |
-                        composer-php-8.4-
+                        composer-php-8.3-
                         composer-
             -   name: Install Composer Dependencies
                 run: |
