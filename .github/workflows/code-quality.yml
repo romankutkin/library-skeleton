@@ -6,42 +6,20 @@ on:
 env:
     PHP_IMAGE_BASE_PATH: ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php
 
-# Define reusable steps using YAML anchors
-x-reusable-steps:
-    docker-login: &docker_login_step
-        name: Login to Docker Registry
-        run: |
-            echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
-                -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
-    checkout-code: &checkout_code_step
-        name: Checkout Code
-        uses: actions/checkout@v4
-    cache-composer: &cache_composer_step
-        name: Cache Composer Dependencies
-        uses: actions/cache@v4
-        with:
-            path: vendor
-            key: composer-${{ hashFiles('composer.lock') }}
-            restore-keys: composer-
-    install-composer-dependencies-php-8-4: &install_composer_dependencies_php_8_4_step
-        name: Install Composer Dependencies
-        run: |
-            docker run --rm \
-                -v ${{ github.workspace }}:/srv/library \
-                -w /srv/library \
-                ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
-                composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
-
 jobs:
     validate-composer-configuration:
         name: Validate Composer Configuration
         runs-on: ubuntu-latest
         steps:
-            -   <<: *docker_login_step
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
             -   name: Pull PHP 8.4 CLI Image
                 run: |
                     docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli
-            -   <<: *checkout_code_step
+            -   name: Checkout Code
+                uses: actions/checkout@v4
             -   name: Validate composer.json
                 run: |
                     docker run --rm \
@@ -55,13 +33,28 @@ jobs:
         runs-on: ubuntu-latest
         needs: [ validate-composer-configuration ]
         steps:
-            -   <<: *docker_login_step
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
             -   name: Pull PHP 8.4 CLI Image
                 run: |
                     docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli
-            -   <<: *checkout_code_step
-            -   <<: *cache_composer_step
-            -   <<: *install_composer_dependencies_php_8_4_step
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: composer-${{ hashFiles('composer.lock') }}
+                    restore-keys: composer-
+            -   name: Install Composer Dependencies
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
             -   name: Run PHPStan
                 run: |
                     docker run --rm \
@@ -75,13 +68,28 @@ jobs:
         runs-on: ubuntu-latest
         needs: [ validate-composer-configuration ]
         steps:
-            -   <<: *docker_login_step
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
             -   name: Pull PHP 8.4 CLI Image
                 run: |
                     docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli
-            -   <<: *checkout_code_step
-            -   <<: *cache_composer_step
-            -   <<: *install_composer_dependencies_php_8_4_step
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: composer-${{ hashFiles('composer.lock') }}
+                    restore-keys: composer-
+            -   name: Install Composer Dependencies
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
             -   name: Run PHP-CS-Fixer
                 run: |
                     docker run --rm \
@@ -93,17 +101,28 @@ jobs:
     run-unit-test:
         name: Run Unit Tests
         runs-on: ubuntu-latest
-        needs: [ run-analyze ] # Typically depends on analysis passing
+        needs: [ run-analyze ]
         strategy:
             matrix:
                 php_version: [ "8.3", "8.4" ]
         steps:
-            -   <<: *docker_login_step
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
             -   name: Pull PHP ${{ matrix.php_version }} CLI Image
                 run: |
                     docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:${{ matrix.php_version }}-cli
-            -   <<: *checkout_code_step
-            -   <<: *cache_composer_step
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: composer-php-${{ matrix.php_version }}-${{ hashFiles('composer.lock') }}
+                    restore-keys: |
+                        composer-php-${{ matrix.php_version }}-
+                        composer-
             -   name: Install Composer Dependencies (PHP ${{ matrix.php_version }})
                 run: |
                     docker run --rm \
@@ -124,13 +143,30 @@ jobs:
         runs-on: ubuntu-latest
         needs: [ run-unit-test ]
         steps:
-            -   <<: *docker_login_step
-            -   name: Pull PHP 8.4 CLI Image # Using a fixed version for combined coverage report
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
+            -   name: Pull PHP 8.4 CLI Image
                 run: |
                     docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli
-            -   <<: *checkout_code_step
-            -   <<: *cache_composer_step
-            -   <<: *install_composer_dependencies_php_8_4_step # Use 8.4 for coverage tool installation
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: composer-php-8.4-${{ hashFiles('composer.lock') }} # Specific key for this PHP version
+                    restore-keys: |
+                        composer-php-8.4-
+                        composer-
+            -   name: Install Composer Dependencies
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
             -   name: Generate Code Coverage Report
                 run: |
                     echo "TODO: Add command to generate code coverage report using PHPUnit with coverage options"
