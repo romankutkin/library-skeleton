@@ -1,0 +1,179 @@
+name: Code Quality
+on:
+    pull_request:
+        types: [ opened, synchronize, reopened ]
+
+env:
+    PHP_IMAGE_BASE_PATH: ${{ secrets.DOCKER_REGISTRY_HOST }}/library-name/php
+
+jobs:
+    validate-composer-configuration:
+        name: Validate Composer Configuration
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
+            -   name: Pull PHP 8.4 CLI Image
+                run: |
+                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Validate composer.json
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
+                        composer validate
+
+    run-analyze:
+        name: Run Static Analysis
+        runs-on: ubuntu-latest
+        needs: [ validate-composer-configuration ]
+        steps:
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
+            -   name: Pull PHP 8.4 CLI Image
+                run: |
+                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: composer-${{ hashFiles('composer.lock') }}
+                    restore-keys: composer-
+            -   name: Install Composer Dependencies
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
+                        composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
+            -   name: Run PHPStan
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
+                        vendor/bin/phpstan analyze -l 10 src tests --memory-limit=2G
+
+    run-linter:
+        name: Run Linter
+        runs-on: ubuntu-latest
+        needs: [ validate-composer-configuration ]
+        steps:
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
+            -   name: Pull PHP 8.4 CLI Image
+                run: |
+                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: composer-${{ hashFiles('composer.lock') }}
+                    restore-keys: composer-
+            -   name: Install Composer Dependencies
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
+                        composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
+            -   name: Run PHP-CS-Fixer
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.3-cli \
+                        vendor/bin/php-cs-fixer fix --dry-run --diff
+
+    run-unit-test:
+        name: Run Unit Tests
+        runs-on: ubuntu-latest
+        needs: [ run-analyze ]
+        strategy:
+            matrix:
+                php_version: [ "8.3", "8.4" ]
+        steps:
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
+            -   name: Pull PHP ${{ matrix.php_version }} CLI Image
+                run: |
+                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:${{ matrix.php_version }}-cli
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: composer-php-${{ matrix.php_version }}-${{ hashFiles('composer.lock') }}
+                    restore-keys: |
+                        composer-php-${{ matrix.php_version }}-
+                        composer-
+            -   name: Install Composer Dependencies (PHP ${{ matrix.php_version }})
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:${{ matrix.php_version }}-cli \
+                        composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
+            -   name: Run PHPUnit (PHP ${{ matrix.php_version }})
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:${{ matrix.php_version }}-cli \
+                        vendor/bin/phpunit
+
+    create-code-coverage:
+        name: Create Code Coverage Report
+        runs-on: ubuntu-latest
+        needs: [ run-unit-test ]
+        steps:
+            -   name: Login to Docker Registry
+                run: |
+                    echo "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY_HOST }} \
+                        -u ${{ secrets.DOCKER_REGISTRY_USERNAME }} --password-stdin
+            -   name: Pull PHP 8.4 CLI Image
+                run: |
+                    docker pull ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli
+            -   name: Checkout Code
+                uses: actions/checkout@v4
+            -   name: Cache Composer Dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: composer-php-8.3-${{ hashFiles('composer.lock') }} # Specific key for this PHP version
+                    restore-keys: |
+                        composer-php-8.3-
+                        composer-
+            -   name: Install Composer Dependencies
+                run: |
+                    docker run --rm \
+                        -v ${{ github.workspace }}:/srv/library \
+                        -w /srv/library \
+                        ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                        composer install --no-interaction --no-cache --prefer-dist --optimize-autoloader
+            -   name: Generate Code Coverage Report
+                run: |
+                    echo "TODO: Add command to generate code coverage report using PHPUnit with coverage options"
+                    # Example:
+                    # docker run --rm \
+                    #     -v ${{ github.workspace }}:/srv/library \
+                    #     -w /srv/library \
+                    #     ${{ env.PHP_IMAGE_BASE_PATH }}:8.4-cli \
+                    #     vendor/bin/phpunit --coverage-clover build/logs/clover.xml
+                    # Then use actions/upload-artifact or similar to upload the report

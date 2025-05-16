@@ -17,5 +17,8 @@ build:
 analyse:
 	@${DOCKER_CONTAINER_RUN} vendor/bin/phpstan analyse -l 10 src tests
 
+lint:
+	@${DOCKER_CONTAINER_RUN} vendor/bin/php-cs-fixer check
+
 bash:
 	@${DOCKER_CONTAINER_RUN} bash
